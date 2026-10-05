@@ -126,9 +126,7 @@ export async function POST(request) {
     }
 
     const text = (data.content || []).map((b) => b.text || '').join('\n');
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('AI raw response:', JSON.stringify(data).slice(0, 2000));
-    }
+    console.log('AI stop_reason:', data.stop_reason, 'output_tokens:', data.usage?.output_tokens, 'text_len:', text.length);
     const parsed = parseAiJson(text);
     return Response.json({ result: parsed });
   } catch (err) {
