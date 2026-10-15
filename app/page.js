@@ -305,6 +305,7 @@ export default function Home() {
               <b> 대상(프린터)을 &lsquo;PDF로 저장&rsquo;</b>으로 고르면 PDF 파일로 저장돼요.
               종이로 인쇄하면 A4 앞뒤 2장이에요.
             </p>
+            <p className="edit-tip">✏️ 아래 보고서의 글을 누르면 바로 고칠 수 있어요. 고친 글은 3단계 화면에도 똑같이 반영돼요.</p>
             <div className="btn-row">
               <button className="btn btn-primary btn-big" onClick={() => window.print()}>🖨️ 인쇄 / PDF로 저장</button>
             </div>
@@ -315,7 +316,7 @@ export default function Home() {
       {step === 4 && (
         <div className="preview-scroll">
           <div className="preview-wrap print-area">
-            <ReportSheets info={info} result={result} photos={photos} />
+            <ReportSheets info={info} result={result} photos={photos} onEdit={setR} />
           </div>
         </div>
       )}
@@ -334,7 +335,33 @@ const AREA_META = {
   friend: { num: '06', chip: '사회관계', chipColor: 'chip-sage', title: '친구와의 관계' },
 };
 
-function Section({ k, text }) {
+// 미리보기에서 글을 눌러 바로 고치는 칸 — 다른 곳을 누르는 순간 저장
+function EditableText({ value, onChange }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current && ref.current.innerText !== value) ref.current.innerText = value;
+  }, [value]);
+  if (!onChange) return <p>{value}</p>;
+  return (
+    <p
+      ref={ref}
+      className="editable"
+      contentEditable
+      suppressContentEditableWarning
+      title="눌러서 고칠 수 있어요"
+      onBlur={(e) => {
+        const v = e.currentTarget.innerText.replace(/\n+$/, '');
+        if (v !== value) onChange(v);
+      }}
+      onPaste={(e) => {
+        e.preventDefault();
+        document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+      }}
+    />
+  );
+}
+
+function Section({ k, text, onEdit }) {
   const m = AREA_META[k];
   if (!text || !text.trim()) return null;
   return (
@@ -344,7 +371,7 @@ function Section({ k, text }) {
         <span className="sec-title">{m.title}</span>
         <span className={`sec-chip ${m.chipColor}`}>{m.chip}</span>
       </div>
-      <p>{text}</p>
+      <EditableText value={text} onChange={onEdit && ((v) => onEdit(k, v))} />
     </div>
   );
 }
@@ -374,7 +401,7 @@ function PageFoot({ info, name, page }) {
   );
 }
 
-function ReportSheets({ info, result, photos }) {
+function ReportSheets({ info, result, photos, onEdit }) {
   const name = info.childName || '○○';
   const band = (
     <div className="rep-band">
@@ -419,9 +446,9 @@ function ReportSheets({ info, result, photos }) {
             <div className="head-sub">1학기를 지나 2학기까지, 선생님이 곁에서 지켜본 우리 아이의 모습입니다.</div>
           </div>
           <div className="area-list">
-            <Section k="first" text={result.first} />
-            <Section k="worry" text={result.worry} />
-            <Section k="food" text={result.food} />
+            <Section k="first" text={result.first} onEdit={onEdit} />
+            <Section k="worry" text={result.worry} onEdit={onEdit} />
+            <Section k="food" text={result.food} onEdit={onEdit} />
           </div>
           <PhotoBand items={[photos[0], photos[1]]} />
           <PageFoot info={info} name={name} page="02" />
@@ -437,9 +464,9 @@ function ReportSheets({ info, result, photos }) {
             <div className="head-sub">놀이와 관계 속에서 자라나는 모습을 담았습니다.</div>
           </div>
           <div className="area-list">
-            <Section k="play" text={result.play} />
-            <Section k="topic" text={result.topic} />
-            <Section k="friend" text={result.friend} />
+            <Section k="play" text={result.play} onEdit={onEdit} />
+            <Section k="topic" text={result.topic} onEdit={onEdit} />
+            <Section k="friend" text={result.friend} onEdit={onEdit} />
           </div>
           <PhotoBand items={[photos[2], photos[3]]} />
           <PageFoot info={info} name={name} page="03" />
@@ -458,20 +485,20 @@ function ReportSheets({ info, result, photos }) {
             {result.grow && result.grow.trim() ? (
               <div className="grow-box">
                 <div className="g-title">2학기 총평 — 가장 큰 변화</div>
-                <p>{result.grow}</p>
+                <EditableText value={result.grow} onChange={onEdit && ((v) => onEdit('grow', v))} />
               </div>
             ) : null}
             {result.letter && result.letter.trim() ? (
               <div className="letter-box">
                 <div className="letter-title">{name} 부모님께 드리는 편지</div>
-                <p>{result.letter}</p>
+                <EditableText value={result.letter} onChange={onEdit && ((v) => onEdit('letter', v))} />
                 <div className="sign">{name}의 담임 {info.teacherName || ''} 드림</div>
               </div>
             ) : null}
             {result.next && result.next.trim() ? (
               <div className="next-box">
                 <div className="n-title">남은 학기 안내</div>
-                <p>{result.next}</p>
+                <EditableText value={result.next} onChange={onEdit && ((v) => onEdit('next', v))} />
               </div>
             ) : null}
           </div>
